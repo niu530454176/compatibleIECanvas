@@ -1,0 +1,70 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #ffeddb;
+}
+
+canvas {
+  font: 14px Arial;
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  margin-left: -275px;
+}
+.htc() {
+  behavior: url(../PIE.htc);
+}
+.opacity(@opacity:60) {
+  /* older safari/Chrome browsers */
+  -webkit-opacity: @opacity / 100;
+  /* Netscape and Older than Firefox 0.9 */
+  -moz-opacity: @opacity / 100;
+  /* Safari 1.x (pre WebKit!) 老式khtml内核的Safari浏览器*/
+  -khtml-opacity: @opacity / 100;
+  /* IE9 + etc...modern browsers */
+  opacity: @opacity / 100;
+  /* IE 4-9 */
+  filter: alpha(opacity=@opacity);
+  /*This works in IE 8 & 9 too*/
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=" @opacity ")";
+  /*IE4-IE9*/
+  filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=@opacity);
+}
+.mask {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  .tips-w {
+    width: 400px;
+    position: absolute;
+    left: 50%;
+    margin-left: -200px;
+    top: 35%;
+    background: #666;
+    margin-top: -100px;
+    border-radius: 16px;
+    color: #ffffff;
+    .title {
+      height: 50px;
+      line-height: 50px;
+      text-align: center;
+      border-bottom: 1px solid #ccc;
+    }
+    .container {
+      height: 60px;
+      line-height: 60px;
+      text-align: center;
+    }
+    .btn {
+      width: 80px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      background-attachment: fixed;
+      margin: 0 auto;
+    }
+  }
+}

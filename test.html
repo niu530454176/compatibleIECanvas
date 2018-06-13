@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="css/test.css">
+</head>
+<body>
+<script type="text/javascript" src="js/excanvas.js"></script>
+<script>
+    /**需要注意的几点
+     * （1）拖拽事件参数e没有target属性，可由srcElement属性来替代
+     * （2）拖拽事件参数e没有preventDefault方法，这个方法用了阻止默认行为，如果没有这个方法，拖拽的时候会单独打开一个页面，可以替换为：
+     *     window.event.returnValue = false;
+     * （3）如果显示原有的canvas节点，此时就没问题了，可是如果动态创建节点（var nodeElement = document.createElement(“canvas”);），
+     *     不能调用getContext方法了就有问题了，可以用 G_vmlCanvasManager.initElement(nodeElement)先初始化节点，后再getContext（），
+     *     记得getContext之前要先添加节点，即$(‘main’).appendChild(nodeElement);
+     *
+     **/
+    var goBang = {
+        //        用于存放绘制棋子落子情况
+        chessArr: [],
+//        元素宽高
+        width: null,
+        height: null,
+//        开始绘制距离
+        startSistance: 30,
+//        棋盘多少道
+        chessLine: 19,
+//        五子棋黑子先行
+        chessBool: 'blank',
+        lineWidth: 1,
+//        canvas元素
+        myCanvas: null,
+//        canvas画布
+        canvasText: null,
+        init: function () {
+            this.getCanvasText();
+            this.drawChessboardLine();
+            this.setChessArr();
+            this.mouseDownClick();
+            this.addEvent();
+        },
+//        获取画布元素
+        getCanvasText: function () {
+            document.getElementsByClassName('canvas')[0].innerHTML = '<canvas class="canvas" id="myCanvas" width="630" height="630"></canvas>';
+            this.myCanvas = document.getElementById('myCanvas');
+            this.canvasText = this.myCanvas.getContext('2d');
+            this.width = this.myCanvas.clientWidth - 60;
+            this.height = this.myCanvas.clientHeight - 60;
+        },
+//        设置棋盘数组|初始值为null
+        setChessArr: function () {
+            for (var i = 0; i < this.chessLine; i++) {
+                this.chessArr[i] = [];
+                for (var j = 0; j < this.chessLine; j++) {
+                    this.chessArr[i][j] = null;
+                }
+            }
+        },
+//        绘制棋盘线条
+        drawChessboardLine: function () {
+            var canvasText = this.canvasText;
+            var width = this.width;
+            var height = this.height;
+            canvasText.lineWidth = 1;
+//        绘制线条的颜色
+            canvasText.fillStyle = '#000';
+            for (var i = 0; i <= width - this.startSistance; i += width / this.chessLine) {
+//                线条绘制需要偏移0.5px  解决线条绘制模糊问题因为canvas绘制会从开始位置劈开中心绘制
+                canvasText.moveTo(this.startSistance - .5, i - .5 + this.startSistance);
+                canvasText.lineTo(width - this.startSistance + this.startSistance - .5, i - .5 + this.startSistance);
+                canvasText.moveTo(i - .5 + this.startSistance, this.startSistance - .5);
+                canvasText.lineTo(i - .5 + this.startSistance, height - this.startSistance + this.startSistance - .5);
+                canvasText.stroke();
+            }
+        },
+//        落子  参数x为x轴的第几个  y为y轴的第几条线  bool为true是黑子  false为白子
+        drawChessPiece: function (x, y, bool) {
+//            棋子的大小就是每一格大小的三分之一
+            var canvasText = this.canvasText;
+            var pieceWith = this.width / (this.chessLine * 3);
+            var checkerDistanceWidth = this.width / this.chessLine;
+            canvasText.beginPath();
+            canvasText.arc(this.startSistance + x * checkerDistanceWidth, this.startSistance + y * checkerDistanceWidth, pieceWith, 0, 2 * Math.PI);//绘制棋子
+            var gradient = canvasText.createRadialGradient(this.startSistance + x * checkerDistanceWidth, this.startSistance + y * checkerDistanceWidth, pieceWith, this.startSistance + x * checkerDistanceWidth, this.startSistance + y * checkerDistanceWidth, 0);//设置渐变
+            if (bool === 'blank') {                           //k=true是黑棋，否则是白棋
+                gradient.addColorStop(0, '#0A0A0A');//黑棋
+                gradient.addColorStop(1, '#636766');
+                this.chessBool = 'white';
+            } else {
+                gradient.addColorStop(0, '#D1D1D1');//白棋
+                gradient.addColorStop(1, '#F9F9F9');
+                this.chessBool = 'blank';
+            }
+            canvasText.fillStyle = gradient;
+            canvasText.fill();
+            canvasText.closePath();
+        },
+//        添加鼠标落子点击
+        mouseDownClick: function () {
+            var _this = this;
+            var canvas = this.myCanvas;
+            var width = this.width;
+            var height = this.height;
+            var startSistance = this.startSistance;
+//            棋盘距离一半
+            var checkerDistanceWidth = width / this.chessLine / 2;
+            canvas.onclick = function (e) {
+                var x = e.offsetX;//相对于棋盘左上角的x坐标
+                var y = e.offsetY;//相对于棋盘左上角的y坐标h
+//                算出X  和y坐标的  位于第几条线
+                var xStart = Math.floor((x - startSistance + checkerDistanceWidth) / (width / _this.chessLine));
+                var yStart = Math.floor((y - startSistance + checkerDistanceWidth) / (width / _this.chessLine));
+                //        检查是否下在原来的棋子上
+                if ((_this.chessArr[xStart][yStart] !== null) || (x - checkerDistanceWidth < 0) || (y - checkerDistanceWidth < 0) || (x > width + checkerDistanceWidth + startSistance) || (y > checkerDistanceWidth + startSistance + height)) {
+                    return false;
+                }
+                _this.chessArr[xStart][yStart] = _this.chessBool;
+                _this.drawChessPiece(xStart, yStart, _this.chessBool);
+                _this.judgeGameOver(xStart, yStart);
+            }
+        },
+        judgeGameOver: function (xStart, yStart) {
+//            判断五子棋胜利的方法  向8个方向搜索  遇到相同的棋子  num就加1  如果一个方向的num === 5 时  游戏结束
+            var _this = this;
+            var n1 = 0,
+                //左右方向
+                n2 = 0,
+                //上下方向
+                n3 = 0,
+                //左上到右下方向
+                n4 = 0; // 右上到左下方向
+            //***************左右方向**********************************
+            //先从点击的位置向左寻找，相同颜色的棋子n1自加，直到不是相同颜色的棋子，则跳出循环
+            for (var i = xStart; i >= 0; i--) {
+                if (_this.chessArr[i][yStart] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n1++;
+            }
+            //然后从点击的位置向右下一个位置寻找，相同颜色的棋子n1自加，直到不是相同颜色的棋子，则跳出循环
+            for (var i = xStart + 1; i < this.chessLine; i++) {
+                if (_this.chessArr[i][yStart] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n1++;
+            }
+            //****************上下方向******************************
+            for (var i = yStart; i >= 0; i--) {
+                if (_this.chessArr[xStart][i] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n2++;
+            }
+            for (var i = yStart + 1; i < this.chessLine; i++) {
+                if (_this.chessArr[xStart][i] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n2++;
+            }
+            //****************左上到右下斜方向******************************
+            for (var i = xStart,
+                     j = yStart; i >= 0, j >= 0; i--, j--) {
+                if (i < 0 || j < 0 || _this.chessArr[i][j] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n3++;
+            }
+            for (var i = xStart + 1,
+                     j = yStart + 1; i < this.chessLine, j < this.chessLine; i++, j++) {
+                if (i >= this.chessLine || j >= this.chessLine || _this.chessArr[i][j] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n3++;
+            }
+            //****************右上到左下斜方向******************************
+            for (var i = xStart,
+                     j = yStart; i >= 0, j < this.chessLine; i--, j++) {
+                if (i < 0 || j >= this.chessLine || _this.chessArr[i][j] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n4++;
+            }
+            for (var i = xStart + 1,
+                     j = yStart - 1; i < this.chessLine, j >= 0; i++, j--) {
+                if (i >= this.chessLine || j < 0 || _this.chessArr[i][j] !== _this.chessArr[xStart][yStart]) {
+                    break;
+                }
+                n4++;
+            }
+            if (n1 >= 5 || n2 >= 5 || n3 >= 5 || n4 >= 5) {
+                if (_this.chessArr[xStart][yStart] === 'white') { //白棋
+                    this.messageTips("白棋赢了，游戏结束！");
+                } else if (_this.chessArr[xStart][yStart] === 'blank') { //黑棋
+                    this.messageTips("黑棋赢了，游戏结束！");
+                }
+            }
+        },
+        messageTips : function (tips) {
+            document.getElementsByClassName('container')[0].innerHTML = tips;
+            document.getElementsByClassName('mask')[0].style.display = 'block';
+        },
+        addEvent: function () {
+            var _this = this;
+            document.getElementsByClassName('btn')[0].onclick = function () {
+                document.getElementsByClassName('mask')[0].style.display = 'none';
+                _this.init();
+            }
+        }
+    };
+    window.onload = function () {
+        goBang.init();
+    }
+</script>
+
+<div class="mask">
+    <div class="tips-w">
+        <div class="title">提示</div>
+        <div class="container">
+        </div>
+        <div class="btn">确定</div>
+    </div>
+</div>
+<div class="canvas">
+
+</div>
+</body>
+</html>
